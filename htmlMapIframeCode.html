@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    #map { width: 100%; height: 500px; z-index: 0; }
+    #locations { width: 90%; margin: 20px auto; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+    .location { cursor: pointer; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+    .active { background-color: #d0ebff; }
+    .zip-list { margin-top: 5px; font-size: 14px; }
+    #controls { padding: 10px; text-align: center; }
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 10px;
+      font-size: 16px;
+      color: #333;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label for="zipResSlider">ZIP Resolution:</label>
+    <input type="range" id="zipResSlider" min="3" max="5" step="2" value="3" />
+    <span id="zipResValue">3</span>
+  </div>
+  <div id="loading">Loading map data...</div>
+  <div id="map"></div>
+  <div id="locations"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let zipMap = {};
+    let siteData = [];
+    let locations = [];
+    let selectedLocation = null;
+    let geojsonLayers = {};
+    let markerLayer = L.layerGroup();
+    let locationColors = {};
+    let zipResolution = 3;
+
+    const map = L.map('map').setView([39.8283, -98.5795], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    map.createPane('zipPane');
+    map.getPane('zipPane').style.zIndex = 200;
+    markerLayer.addTo(map);
+
+    document.getElementById("zipResSlider").addEventListener("input", function(e) {
+      zipResolution = parseInt(e.target.value);
+      document.getElementById("zipResValue").textContent = zipResolution;
+      updateVisibleGeoJSONLayers();
+    });
+
+    function generateColors(count) {
+      const colors = [];
+      for (let i = 0; i < count; i++) {
+        const hue = Math.floor((360 / count) * i);
+        colors.push(`hsl(${hue}, 70%, 60%)`);
+      }
+      return colors;
+    }
+
+    function getZipKey(zip) {
+      if (!zip || zip.length < zipResolution) return null;
+      return zip.substring(0, zipResolution);
+    }
+
+    function resolveZipAssignment(zip5) {
+      if (!zip5) return null;
+      return zipMap[zip5] ||
+             (zip5.length >= 3 ? zipMap[zip5.substring(0, 3)] : null);
+    }
+
+    function extractZip(feature) {
+      if (!feature.properties) return null;
+      const keys = Object.keys(feature.properties);
+      for (let key of keys) {
+        const value = feature.properties[key];
+        if (typeof value === 'string' && /^\d{3,5}$/.test(value)) {
+          return value;
+        }
+      }
+      return null;
+    }
+
+    function style(feature) {
+      const zip5 = extractZip(feature);
+      const assigned = resolveZipAssignment(zip5);
+      const zipKey = zip5 ? zip5.substring(0, Math.min(5, zip5.length)) : null;
+      const styleRes = zipKey ? zipKey.length : 0;
+      const showLine = styleRes === zipResolution;
+      const showFill = (
+        (styleRes <= zipResolution && assigned) ||
+        (zipResolution === 3 && styleRes === 5 && assigned)
+      );
+      return {
+        fillColor: showFill ? locationColors[assigned] : 'transparent',
+        weight: showLine ? 2 : 0, // Made weight more evident
+        color: showLine ? '#555' : 'transparent', // Darker stroke color
+        fillOpacity: showFill ? 0.6 : 0,
+        pane: 'zipPane'
+      };
+    }
+
+    function onEachFeature(feature, layer) {
+      const zip5 = extractZip(feature);
+      layer.on({
+        click: () => {
+          if (!selectedLocation || !zip5) return;
+          const zipKey = getZipKey(zip5);
+          if (!zipKey) return;
+          if (zipMap[zipKey] === selectedLocation) {
+            delete zipMap[zipKey];
+          } else {
+            zipMap[zipKey] = selectedLocation;
+          }
+          Object.values(geojsonLayers).forEach(l => l.setStyle(style));
+          updateLists();
+          postZipMapToParent();
+        }
+      });
+      layer.bindTooltip(`ZIP: ${zip5 || "Unknown"}`, { sticky: true });
+    }
+
+    function updateLists() {
+      const container = document.getElementById("locations");
+      container.innerHTML = "";
+      locations.forEach(loc => {
+        const div = document.createElement("div");
+        div.className = "location" + (selectedLocation === loc ? " active" : "");
+        div.style.borderLeft = `10px solid ${locationColors[loc]}`;
+        div.textContent = loc;
+        div.addEventListener("click", () => {
+          selectedLocation = loc;
+          updateLists();
+        });
+        const assigned = Object.entries(zipMap).filter(([_, l]) => l === loc).map(([z]) => z).sort().join(", ");
+        const zipList = document.createElement("div");
+        zipList.className = "zip-list";
+        zipList.textContent = assigned;
+        div.appendChild(zipList);
+        container.appendChild(div);
+      });
+    }
+
+    function placeMarkers() {
+      markerLayer.clearLayers();
+      siteData.forEach(site => {
+        const lat = parseFloat(site.latitude);
+        const lon = parseFloat(site.longitude);
+        if (!isNaN(lat) && !isNaN(lon)) {
+
+const marker = L.circleMarker([lat, lon], {
+  radius: 9,                                // slightly larger dot
+  color: 'black',                           // BLACK BORDER
+  weight: 3,                                // border thickness (px)
+  opacity: 1,                               // border opacity
+  fillColor: locationColors[site.locationName], // keep your per-location color inside
+  fillOpacity: 1                            // solid fill
+});
+
+
+          marker.on('click', () => {
+            selectedLocation = site.locationName;
+            updateLists();
+          });
+          marker.bindTooltip(site.locationName);
+          marker.addTo(markerLayer);
+        }
+      });
+    }
+
+    function postZipMapToParent() {
+      window.parent.postMessage({ type: "zip3MapUpdate", zip3Map: zipMap }, "*");
+    }
+
+    async function loadGeoJSON(res) {
+      const fileMap = {
+        3: "https://502226b4-110a-4861-ad7e-941df81678ff.usrfiles.com/ugd/502226_607f9c6b831d4302a2f993ac0d3fcb1b.json",
+        5: "https://502226b4-110a-4861-ad7e-941df81678ff.usrfiles.com/ugd/502226_2549809086954acebd6ec068454354e8.json"
+      };
+      const url = fileMap[res];
+      try {
+        const geojsonResp = await fetch(url);
+        const geojson = await geojsonResp.json();
+        const layer = L.geoJSON(geojson, {
+          style,
+          onEachFeature
+        });
+        geojsonLayers[res] = layer;
+      } catch (err) {
+        console.error(`Error loading GeoJSON for resolution ${res}:`, err);
+      }
+    }
+
+    function updateVisibleGeoJSONLayers() {
+      const loadingEl = document.getElementById("loading");
+      loadingEl.style.display = "block";
+      Object.entries(geojsonLayers).forEach(([res, layer]) => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+      Object.entries(geojsonLayers).forEach(([res, layer]) => {
+        const resNum = parseInt(res);
+        if (resNum === 3 || resNum === 5) {
+          if (zipResolution === 3 || zipResolution === 5) {
+            layer.setStyle(style);
+            layer.addTo(map);
+          }
+        }
+      });
+      map.eachLayer(layer => {
+        if (layer === markerLayer) {
+          markerLayer.eachLayer(m => m.bringToFront());
+        }
+      });
+      loadingEl.style.display = "none";
+    }
+
+    window.addEventListener("message", async (event) => {
+      if (!event.data || event.data.type !== "initMap") return;
+      const { sites, initialMap } = event.data;
+      siteData = sites;
+      zipMap = initialMap || {};
+      locations = [...new Set(siteData.map(d => d.locationName))];
+      const palette = generateColors(locations.length);
+      locationColors = Object.fromEntries(locations.map((loc, i) => [loc, palette[i]]));
+      updateLists();
+      placeMarkers();
+      await Promise.all([loadGeoJSON(3), loadGeoJSON(5)]);
+      updateVisibleGeoJSONLayers();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+import wixData from 'wix-data';
+
+export async function findLocationByZip(inputZip) {
+  const zip5 = inputZip;
+  const zip3 = inputZip.slice(0, 3);
+
+  const allMatches = await wixData.query("Import1") // Replace if needed
+    .contains("referringZips", zip5)
+    .or(wixData.query("Import1").contains("referringZips", zip3))
+    .find();
+
+  const zip5Matches = allMatches.items.filter(item => {
+    const zips = (item.referringZips || "").split('|');
+    return zips.includes(zip5);
+  });
+
+  if (zip5Matches.length > 0) {
+    const match = zip5Matches[0];
+    return {
+      matchType: "ZIP5",
+      location: match.name,
+      address: match.address, 
+      website: match.website,
+      imageUrl: match.imageUrl,
+      phone: match.telephone,
+      contactPref: match.contactPreference,
+      calendarUrl: match.calendarUrl
+    };
+  }
+
+  const zip3Matches = allMatches.items.filter(item => {
+    const zips = (item.referringZips || "").split('|');
+    return zips.includes(zip3);
+  });
+
+  if (zip3Matches.length > 0) {
+    const match = zip3Matches[0];
+    return {
+      matchType: "ZIP3",
+      location: match.name,
+      address: match.address, 
+      website: match.website,
+      imageUrl: match.imageUrl,
+      phone: match.telephone,
+      contactPref: match.contactPreference,
+      calendarUrl: match.calendarUrl
+    };
+  }
+
+  return null;
+}
