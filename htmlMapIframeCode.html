@@ -130,8 +130,8 @@
     let locationColors = {};
     let zipResolution = 3;
     
-    // Track all ZIP5 features for unassigned detection
-    let allZip5Features = {};  // { zip5: { feature, layer } }
+    // Track all ZIP3 features for unassigned detection
+    let allZip3Features = {};  // { zip3: { feature, layer } }
     
     // ZIP3 prefix to region name mapping (approximate US regions)
     const zip3ToRegion = {
@@ -418,26 +418,25 @@ const marker = L.circleMarker([lat, lon], {
       window.parent.postMessage({ type: "zip3MapUpdate", zip3Map: zipMap }, "*");
     }
 
-    // Get all unassigned ZIP5 codes
+    // Get all unassigned ZIP3 codes
     function getUnassignedZips() {
       const unassigned = [];
-      Object.keys(allZip5Features).forEach(zip5 => {
-        const assigned = resolveZipAssignment(zip5);
-        if (!assigned) {
-          unassigned.push(zip5);
+      Object.keys(allZip3Features).forEach(zip3 => {
+        // Check if this ZIP3 has a direct assignment
+        if (!zipMap[zip3]) {
+          unassigned.push(zip3);
         }
       });
       return unassigned.sort();
     }
 
-    // Group ZIPs by state
-    function groupZipsByState(zips) {
+    // Group ZIP3s by state
+    function groupZipsByState(zip3s) {
       const groups = {};
-      zips.forEach(zip => {
-        const zip3 = zip.substring(0, 3);
+      zip3s.forEach(zip3 => {
         const state = zip3ToRegion[zip3] || 'Other';
         if (!groups[state]) groups[state] = [];
-        groups[state].push(zip);
+        groups[state].push(zip3);
       });
       // Sort states alphabetically
       const sortedGroups = {};
@@ -487,16 +486,16 @@ const marker = L.circleMarker([lat, lon], {
       });
     }
 
-    // Zoom to a ZIP and flash it
-    function zoomAndFlash(zip5) {
-      const featureData = allZip5Features[zip5];
+    // Zoom to a ZIP3 and flash it
+    function zoomAndFlash(zip3) {
+      const featureData = allZip3Features[zip3];
       if (!featureData || !featureData.layer) return;
       
       const layer = featureData.layer;
       const bounds = layer.getBounds();
       
       // Zoom to the area with some padding
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
       
       // Flash the layer
       flashLayer(layer);
@@ -553,10 +552,10 @@ const marker = L.circleMarker([lat, lon], {
         const layer = L.geoJSON(geojson, {
           style,
           onEachFeature: (feature, layer) => {
-            // Store ZIP5 features for unassigned tracking
-            const zip5 = extractZip(feature);
-            if (zip5 && zip5.length === 5 && res === 5) {
-              allZip5Features[zip5] = { feature, layer };
+            // Store ZIP3 features for unassigned tracking
+            const zipCode = extractZip(feature);
+            if (zipCode && zipCode.length === 3 && res === 3) {
+              allZip3Features[zipCode] = { feature, layer };
             }
             // Call original onEachFeature
             onEachFeature(feature, layer);
