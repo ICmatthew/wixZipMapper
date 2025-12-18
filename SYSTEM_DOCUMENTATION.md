@@ -59,6 +59,8 @@ All interfaces share a consistent visual style with blue/teal accent colors and 
 
 **URL**: `https://iclegal.org`
 
+![iclegal.org lookup interface](icLegalLookup.png)
+
 **Description**:
 - **Branding**: "IMMIGRANT CONNECTION LEGAL NETWORK" (distinct from icpartners.org branding)
 - **Header**: "NEED IMMIGRATION HELP?"
@@ -84,6 +86,8 @@ All interfaces share a consistent visual style with blue/teal accent colors and 
 ### Interface 2: icpartners.org/amazon-lookup - Corporate Partner Lookup
 
 **URL**: `https://icpartners.org/amazon-lookup`
+
+![Amazon Associate Zip Lookup](Amazon%20Lookup.png)
 
 **Description**:
 - **Title**: "Amazon Associate Zip Lookup"
@@ -115,6 +119,8 @@ This page exists because of a corporate partnership between Amazon and Immigrant
 ### Interface 3: icpartners.org/call-center-mapper - Admin ZIP Assignment Tool
 
 **URL**: `https://icpartners.org/call-center-mapper`
+
+![Admin ZIP Mapper Interface](zipMapper.png)
 
 **Description**:
 - **Purpose**: Administrative tool for assigning ZIP codes to locations
