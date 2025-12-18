@@ -9,7 +9,7 @@ This document provides comprehensive documentation of the Immigrant Connection Z
 ## Table of Contents
 
 1. [System Overview](#system-overview)
-2. [Screenshots & Visual Reference](#screenshots--visual-reference)
+2. [Interface Visual Reference](#interface-visual-reference)
 3. [Architecture](#architecture)
 4. [Files Reference](#files-reference)
 5. [Data Model](#data-model)
@@ -40,22 +40,24 @@ This system allows **Immigrant Connection** (a network of immigration legal serv
 
 ### Sites Involved
 
-| Site | Role |
-|------|------|
-| **icpartners.org** | Main Wix site hosting the database, admin tools, call center lookup, and API |
-| **iclegal.org** | External consumer site that queries the API and maps results to local pages |
+| Site | Role | Branding |
+|------|------|----------|
+| **icpartners.org** | Main Wix site hosting the database, admin tools, call center lookup, and API | "IMMIGRANT CONNECTION" |
+| **iclegal.org** | External consumer site that queries the API and maps results to local pages | "IMMIGRANT CONNECTION LEGAL NETWORK" |
+
+> **Data Consistency**: All interfaces (admin mapper, Amazon lookup, iclegal.org) query the same `Import1` collection, ensuring a user entering ZIP `29630` receives the same result ("Immigrant Connection-Greenville Multicultural") regardless of which interface they use.
+
+### Design Language
+
+All interfaces share a consistent visual style with blue/teal accent colors and similar button styles, while maintaining site-specific branding and messaging tailored to each audience (corporate partners, call center staff, public consumers).
 
 ---
 
-## Screenshots & Visual Reference
+## Interface Visual Reference
 
-> **Note**: Screenshots should be saved in this folder as `screenshot-1-iclegal.png`, `screenshot-2-amazon-lookup.png`, and `screenshot-3-admin-mapper.png` for reference.
-
-### Screenshot 1: iclegal.org - External Consumer Lookup
+### Interface 1: iclegal.org - External Consumer Lookup
 
 **URL**: `https://iclegal.org`
-
-![iclegal.org lookup interface](screenshot-1-iclegal.png)
 
 **Description**:
 - **Branding**: "IMMIGRANT CONNECTION LEGAL NETWORK" (distinct from icpartners.org branding)
@@ -79,11 +81,9 @@ This system allows **Immigrant Connection** (a network of immigration legal serv
 
 ---
 
-### Screenshot 2: icpartners.org/amazon-lookup - Corporate Partner Lookup
+### Interface 2: icpartners.org/amazon-lookup - Corporate Partner Lookup
 
 **URL**: `https://icpartners.org/amazon-lookup`
-
-![Amazon Associate Zip Lookup](screenshot-2-amazon-lookup.png)
 
 **Description**:
 - **Title**: "Amazon Associate Zip Lookup"
@@ -112,11 +112,9 @@ This page exists because of a corporate partnership between Amazon and Immigrant
 
 ---
 
-### Screenshot 3: icpartners.org/call-center-mapper - Admin ZIP Assignment Tool
+### Interface 3: icpartners.org/call-center-mapper - Admin ZIP Assignment Tool
 
 **URL**: `https://icpartners.org/call-center-mapper`
-
-![Admin ZIP Mapper Interface](screenshot-3-admin-mapper.png)
 
 **Description**:
 - **Purpose**: Administrative tool for assigning ZIP codes to locations
@@ -150,24 +148,6 @@ The location list below the map shows assigned ZIP codes for each location:
 - GeoJSON boundaries fetched from Wix Media CDN
 - Resolution slider toggles between ZIP3 (3) and ZIP5 (5)
 - Click interaction: Select location from list, then click map region to toggle assignment
-
----
-
-### Key Insights from Screenshots
-
-1. **Consistent Data**: ZIP `29630` returns the same result ("Immigrant Connection-Greenville Multicultural") across all interfaces, confirming data consistency
-
-2. **Branding Variations**:
-   - iclegal.org: "IMMIGRANT CONNECTION LEGAL NETWORK"
-   - icpartners.org: "IMMIGRANT CONNECTION"
-   
-3. **Corporate Partnerships**: The Amazon-specific page indicates B2B/enterprise relationships exist beyond consumer-facing tools
-
-4. **Coverage Scale**: The admin mapper reveals the scale of the operation - approximately 25+ locations covering the entire continental US
-
-5. **Regional Strategy**: Some locations (like Awaken City) handle very large regions via ZIP3 codes, while others handle specific metro areas
-
-6. **UI Consistency**: All interfaces use similar design language (blue/teal accent colors, similar button styles) while maintaining site-specific branding
 
 ---
 
@@ -655,6 +635,9 @@ X-API-Key: YOUR_KEY
 - ZIP5 "49503" → Location B (specific override)
 - User enters "49503" → Gets Location B
 - User enters "49501" → Gets Location A (falls back to ZIP3)
+
+**Regional Strategy in Practice**: 
+Some locations handle very large regions via ZIP3 codes (e.g., Awaken City covers nearly 100 ZIP3 codes across the entire Northeast: 010-088, 100-149, 165, 180-194), while others handle specific metro areas with more granular ZIP5 assignments. This allows efficient coverage of rural areas while maintaining precision in high-density markets.
 
 ### 3. Iframe Communication
 
