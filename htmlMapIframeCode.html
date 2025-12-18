@@ -422,8 +422,16 @@ const marker = L.circleMarker([lat, lon], {
     function getUnassignedZips() {
       const unassigned = [];
       Object.keys(allZip3Features).forEach(zip3 => {
-        // Check if this ZIP3 has a direct assignment
-        if (!zipMap[zip3]) {
+        // Check if this ZIP3 has an assignment
+        // Try multiple formats to handle leading zeros differences
+        const zip3NoLeadingZeros = String(parseInt(zip3, 10));
+        const zip3Padded = zip3.padStart(3, '0');
+        
+        const isAssigned = zipMap[zip3] || 
+                          zipMap[zip3NoLeadingZeros] || 
+                          zipMap[zip3Padded];
+        
+        if (!isAssigned) {
           unassigned.push(zip3);
         }
       });
